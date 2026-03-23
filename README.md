@@ -48,6 +48,7 @@ from lombok_wyatty import Data
 class Hero:
     name: str
     power: int
+```
 
 👤 Автор
 Created by Wyatty 🚀
