@@ -117,6 +117,24 @@ def Setter(*fields):
 def GetterSetter(*fields): 
     return lambda cls: _create_methods(cls, fields, add_getter=True, add_setter=True)
 
+def UniqueIdentifier(value: str):
+    def decorator(cls):
+        original_init = cls.__init__
+
+        @functools.wraps(original_init)
+        def new_init(self, *args, **kwargs):
+            mangled_name = f"_{cls.__name__}__UniqueIdentifier"
+            setattr(self, mangled_name, value)
+            
+            if not hasattr(cls, "get_unique_id"):
+                setattr(cls, "get_unique_id", lambda self, n=mangled_name: getattr(self, n))
+            
+            original_init(self, *args, **kwargs)
+
+        cls.__init__ = new_init
+        return cls
+    return decorator
+
 def DataClass(cls):
     cls = AllArgsConstructor(cls)
     cls = ToString(cls)
