@@ -1,6 +1,6 @@
 import sqlite3
 
-class MyDatabase:
+class DatabaseSqlite3:
     def __init__(self, db_name):
         self.connection = sqlite3.connect(db_name)
         self.cursor = self.connection.cursor()
@@ -20,13 +20,3 @@ class MyDatabase:
 
     def close(self):
         self.connection.close()
-
-# Пример использования:
-db = MyDatabase("my_app.db")
-db.create_table("users", "id INTEGER PRIMARY KEY, name TEXT, age INTEGER")
-db.execute_query("INSERT INTO users (name, age) VALUES (?, ?)", ("Иван", 25))
-
-users = db.fetch_data("SELECT * FROM users")
-print(users)
-
-db.close()
