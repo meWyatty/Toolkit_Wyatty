@@ -53,7 +53,20 @@ print(AppConfig.get_NameProfile())
 AppConfig.set_Index(100)
 
 # Сохраняем изменения обратно в файл settings.package
-AppConfig.save() 
+AppConfig.save()
+``` 
+
+## ⚙️ Установка и использование
+Скачайте нужный файл (например, lombok_wyatty.py).
+Положите его в корень вашего проекта.
+Импортируйте функции:
+```python
+from lombok_wyatty import Data
+
+@Data
+class Hero:
+    name: str
+    power: int
 ```
 
 ## 🗄️ database_wyatty.py (In Progress)
