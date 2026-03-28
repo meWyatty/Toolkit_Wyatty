@@ -3,47 +3,11 @@
 
     ✨ Версия: 2.0 (Config Update)
     👤 Автор: wyatty
-
-    📦 Эта библиотека автоматизирует создание конструкторов, геттеров, сеттеров
-    и строковых представлений, а также управление файлами конфигурации.
-
-    [ ----------------------------- 🛠️ ------------------------------- ]
-    @AllArgsConstructor / @DataClass (или @Data)
-    🚀 Автоматизируют создание __init__ и методов доступа. 
-    🔒 Все поля преобразуются в ПРИВАТНЫЕ (self.__field) через механизм Name Mangling.
-    
-    [ ----------------------------- 🔍 ------------------------------- ]
-    @Getter / @Setter / @GetterSetter (*fields)
-    📖 Генерируют методы get_field() и set_field(value) для доступа к приватным данным.
-
-    [ ----------------------------- 🆔 ------------------------------- ]
-    @UniqueIdentifier(value)
-    🔑 Добавляет классу неизменяемый уникальный идентификатор и метод get_unique_id().
-
-    [ ----------------------------- 📄 ------------------------------- ]
-    @ConfigurationPackage(auto_create=True, FileName='config.package')
-    📦 Статический конфигуратор. 
-    При инициализации читает файл и заполняет объект данными. 
-    Если файла нет и auto_create=True — создает его с дефолтными значениями.
-
-    Пример файла: 
-    Index=1
-    NameProfile="asdasd"
-
-    [ ----------------------------- 💾 ------------------------------- ]
-    @ConfigurationArgsPackage(auto_create=True, FileName='config.package')
-    ⚙️ Продвинутый конфигуратор. 
-    Делает то же самое, что и ConfigurationPackage, но добавляет объекту 
-    метод .save(), который позволяет в любой момент сохранить текущее 
-    состояние объекта обратно в файл.
-
-    Пример:
-    config = MyConfig()
-    config.Index = 10
-    config.save()  # Обновит файл на диске
 """
 
 import os
+import time
+import warnings
 import functools
 
 from dataclasses import dataclass, fields
@@ -187,6 +151,51 @@ def ConfigurationArgsPackage(auto_create=True, FileName='configuration.package')
         return instance
     return wrapper
 
+def Validated(cls):
+    for field_name, field_type in cls.__annotations__.items():
+        setter_name = f"set_{field_name}"
+        if hasattr(cls, setter_name):
+            original_setter = getattr(cls, setter_name)
+            
+            def make_validated_setter(name=field_name, t=field_type, opt=original_setter):
+                def validated_setter(self, value):
+                    if not isinstance(value, t):
+                        raise TypeError(f"❌ Field '{name}' must be {t}, not {type(value)}")
+                    opt(self, value)
+                return validated_setter
+            
+            setattr(cls, setter_name, make_validated_setter())
+    return cls
+
+def Singleton(cls):
+    instances = {}
+    @functools.wraps(cls)
+    def get_instance(*args, **kwargs):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+    return get_instance
+
+def LogExecution(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        print(f"🚀 Call: {func.__name__} | Args: {args[1:]} {kwargs}")
+        result = func(*args, **kwargs)
+        end = time.perf_counter()
+        print(f"🏁 Success: {func.__name__} | Time: {end-start:.4f} сек")
+        return result
+    return wrapper
+
+def Deprecated(reason="Using new method please"):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(f"⚠️ {func.__name__} olded: {reason}", DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
 Data = DataClass
 SetterGetter = GetterSetter
 
@@ -213,3 +222,33 @@ if __name__ == "__main__":
 
     Configuration.Index=33
     Configuration.save()
+
+    @Validated
+    @Data
+    class User:
+        age: int
+
+    user = User(age=20)
+    user.set_age("25") 
+
+    @Singleton
+    class Database:
+        pass
+
+    db1 = Database()
+    db2 = Database()
+    print(db1 is db2)  # ✅ True (это один и тот же объект)
+
+    # ПРИМЕР:
+    class Worker:
+        @LogExecution
+        def heavy_task(self, n):
+            time.sleep(n)
+
+    Worker().heavy_task(1)
+
+    @Deprecated("переходите на fast_load()")
+    def old_load():
+        pass
+
+    old_load()

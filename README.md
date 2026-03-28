@@ -29,8 +29,58 @@
 | **@UniqueIdentifier** | 🔑 | ID Класса | Добавляет неизменяемый `unique_id` |
 | **@ConfigurationPackage** | 📦 | Авто-конфиг | Загружает данные из файла при старте |
 | **@ConfigurationArgsPackage**| 💾 | Живой конфиг | Загрузка + метод `.save()` для записи |
+| **@Validated** | 🛡️ | Строгая типизация | Сеттеры проверяют тип данных (int, str...) |
+| **@Singleton** | 🔄 | Один экземпляр | Гарантирует создание только одного объекта |
+| **@LogExecution** | ⏱️ | Логирование | Пишет в консоль время и аргументы вызова |
+| **@Deprecated** | 🛑 | Устаревший код | Выводит предупреждение при вызове метода |
 
 ---
+
+## 🛠️ Примеры новых инструментов
+
+### 🛡️ @Validated (Безопасность типов)
+Теперь нельзя случайно записать строку в поле для чисел.
+```python
+@Validated
+@Data
+class Profile:
+    Age: int
+
+p = Profile(Age=20)
+p.set_Age("Тридцать")  # 🚨 Ошибка: TypeError (ожидался int)
+```
+
+### 🔄 @Singleton (Единство данных)
+Идеально для подключения к БД или глобальных настроек.
+```python
+@Singleton
+class Database:
+    def __init__(self):
+        self.connection = "Connected"
+
+db1 = Database()
+db2 = Database()
+print(db1 is db2)  # ✅ True (это один и тот же объект)
+```
+
+### ⏱️ @LogExecution (Отладка)
+Автоматически отслеживает работу ваших методов.
+```python
+class TaskManager:
+    @LogExecution
+    def process_data(self, data):
+        # В консоли: 🚀 Вызов: process_data | Аргументы: ('some_data',)
+        return len(data)
+```
+
+### 🛑 @Deprecated (Уведомления)
+Помогает плавно обновлять код, не ломая его сразу.
+```python
+@Deprecated("используйте новый метод fast_save()")
+def old_save_method():
+    pass
+# ⚠️ При вызове появится предупреждение в консоли
+```
 
 ## 📦 Пример работы с конфигурацией
 
