@@ -1,63 +1,52 @@
 """
     🐍 lombok_wyatty.py — Python-реализация концепции Project Lombok.
 
-    ✨ Версия: 1.0
+    ✨ Версия: 2.0 (Config Update)
     👤 Автор: wyatty
 
     📦 Эта библиотека автоматизирует создание конструкторов, геттеров, сеттеров
-    и строковых представлений, обеспечивая инкапсуляцию через приватные поля (__field).
+    и строковых представлений, а также управление файлами конфигурации.
 
-    [ ----------------------------- 💎 ------------------------------- ]
-    @DataClass (или @Data)
-    🚀 Комбо-декоратор: создает __init__, методы ToString, Getter и Setter для всех полей.
-    
-    Пример:
-    @DataClass
-    class User:
-        name: str
-        age: int
-    
-    ⚙️ Создаст: __init__(name, age), get_name(), set_name(), get_age(), set_age(), ToString()
-    
-    [ ----------------------------- 🏗️ ------------------------------- ]
-    @AllArgsConstructor
-    🛠️ Автоматически создает конструктор __init__ на основе аннотаций типов.
-    🔒 Все поля сохраняются как ПРИВАТНЫЕ (self.__field).
-
-    Пример:
-    @AllArgsConstructor
-    class Test:
-        name: str
-        age: int
-    
-    ✅ Можно создать объект: test = Test('Nicolaus', 13)
+    [ ----------------------------- 🛠️ ------------------------------- ]
+    @AllArgsConstructor / @DataClass (или @Data)
+    🚀 Автоматизируют создание __init__ и методов доступа. 
+    🔒 Все поля преобразуются в ПРИВАТНЫЕ (self.__field) через механизм Name Mangling.
     
     [ ----------------------------- 🔍 ------------------------------- ]
-    @Getter(*fields)
-    📖 Создает геттеры для указанных приватных полей в формате: get_field().
+    @Getter / @Setter / @GetterSetter (*fields)
+    📖 Генерируют методы get_field() и set_field(value) для доступа к приватным данным.
+
+    [ ----------------------------- 🆔 ------------------------------- ]
+    @UniqueIdentifier(value)
+    🔑 Добавляет классу неизменяемый уникальный идентификатор и метод get_unique_id().
+
+    [ ----------------------------- 📄 ------------------------------- ]
+    @ConfigurationPackage(auto_create=True, FileName='config.package')
+    📦 Статический конфигуратор. 
+    При инициализации читает файл и заполняет объект данными. 
+    Если файла нет и auto_create=True — создает его с дефолтными значениями.
+
+    Пример файла: 
+    Index=1
+    NameProfile="asdasd"
+
+    [ ----------------------------- 💾 ------------------------------- ]
+    @ConfigurationArgsPackage(auto_create=True, FileName='config.package')
+    ⚙️ Продвинутый конфигуратор. 
+    Делает то же самое, что и ConfigurationPackage, но добавляет объекту 
+    метод .save(), который позволяет в любой момент сохранить текущее 
+    состояние объекта обратно в файл.
 
     Пример:
-    @Getter('name', 'age')
-    class Test:
-        def __init__(self, name):
-            self.__name = name
-    
-    [ ----------------------------- ✍️ ------------------------------- ]
-    @Setter(*fields)
-    📝 Создает сеттеры для указанных приватных полей в формате: set_field(value).
-
-    [ ----------------------------- 🔄 ------------------------------- ]
-    @GetterSetter(*fields)
-    🔁 Создает и геттеры, и сеттеры для указанных полей одновременно.
-
-    [ ----------------------------- 🖼️ ------------------------------- ]
-    @ToString
-    📺 Добавляет метод ToString() и поддержку print(obj), выводя содержимое всех полей.
-    
-    💡 Пример вывода: User(name='Nicolaus', age=13)
+    config = MyConfig()
+    config.Index = 10
+    config.save()  # Обновит файл на диске
 """
 
+import os
 import functools
+
+from dataclasses import dataclass, fields
 
 def _create_methods(cls, fields, add_getter=False, add_setter=False):
     original_init = cls.__init__
@@ -141,6 +130,63 @@ def DataClass(cls):
     fields = list(getattr(cls, '__annotations__', {}).keys())
     return _create_methods(cls, fields, add_getter=True, add_setter=True)
 
+def ConfigurationPackage(auto_create=True, FileName='configuration.package'):
+    def wrapper(cls):
+        cls = dataclass(cls)
+        
+        config_data = {}
+        if os.path.exists(FileName):
+            with open(FileName, 'r') as f:
+                for line in f:
+                    if '=' in line:
+                        key, value = line.strip().split('=', 1)
+                        value = value.strip('"')
+                        if key in cls.__annotations__:
+                            target_type = cls.__annotations__[key]
+                            config_data[key] = target_type(value)
+
+        instance = cls(**config_data) if config_data else cls()
+        
+        if auto_create and not os.path.exists(FileName):
+            with open(FileName, 'w') as f:
+                for field in cls.__annotations__:
+                    val = getattr(instance, field, None)
+                    f.write(f'{field}={repr(val) if isinstance(val, str) else val}\n')
+        
+        return instance
+    return wrapper
+
+def ConfigurationArgsPackage(auto_create=True, FileName='configuration.package'):
+    def wrapper(cls):
+        cls = dataclass(cls)
+
+        def save(self):
+            with open(FileName, 'w', encoding='utf-8') as f:
+                for field in fields(self):
+                    val = getattr(self, field.name)
+                    formatted_val = f'"{val}"' if isinstance(val, str) else val
+                    f.write(f'{field.name}={formatted_val}\n')
+
+        cls.save = save
+
+        init_data = {}
+        if os.path.exists(FileName):
+            with open(FileName, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if '=' in line:
+                        key, val = map(str.strip, line.split('=', 1))
+                        if key in cls.__annotations__:
+                            val = val.strip('"')
+                            init_data[key] = cls.__annotations__[key](val)
+
+        instance = cls(**init_data)
+
+        if auto_create and not os.path.exists(FileName):
+            instance.save()
+
+        return instance
+    return wrapper
+
 Data = DataClass
 SetterGetter = GetterSetter
 
@@ -155,3 +201,15 @@ if __name__ == "__main__":
     me.set_age(14)              # Сеттер работает
     print(f"Happy Birthday! New age: {me.get_age()}")
     print(me)                   # Авто-вывод через __str__
+
+    @ConfigurationArgsPackage(auto_create=True, FileName='configuration.package')
+    class Configuration:
+        Index: int = 0
+        NameProfile: str = "default"
+    
+    print(Configuration.Index)
+    print(Configuration.NameProfile)
+
+
+    Configuration.Index=33
+    Configuration.save()
