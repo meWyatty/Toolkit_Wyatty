@@ -13,6 +13,7 @@
 * 🏗️ `@AllArgsConstructor` — Конструктор для всех аннотированных полей.
 * 🔒 **Инкапсуляция** — Все поля автоматически становятся приватными (`__field`).
 * 🖼️ `@ToString` — Красивый вывод объекта: `User(name='Nicolaus', age=13)`.
+* 📦 **Configuration** — Автоматическая привязка классов к файлам настроек.
 
 ### 📋 Список декораторов модуля
 
@@ -25,30 +26,37 @@
 | **@Setter** | ✍️ | Доступ на запись | Создает методы `set_имя_поля(val)` |
 | **@GetterSetter** | 🔄 | Полный доступ | Геттеры и сеттеры сразу |
 | **@ToString** | 🖼️ | Визуализация | Красивый `print(obj)` |
+| **@UniqueIdentifier** | 🔑 | ID Класса | Добавляет неизменяемый `unique_id` |
+| **@ConfigurationPackage** | 📦 | Авто-конфиг | Загружает данные из файла при старте |
+| **@ConfigurationArgsPackage**| 💾 | Живой конфиг | Загрузка + метод `.save()` для записи |
 
 ---
+
+## 📦 Пример работы с конфигурацией
+
+Теперь вы можете превратить любой класс в файл настроек одной строчкой:
+
+```python
+from lombok_wyatty import ConfigurationArgsPackage, Data
+
+# Декоратор сам создаст файл, если его нет, и загрузит данные, если он есть
+@ConfigurationArgsPackage(auto_create=True, FileName='settings.package')
+@Data
+class AppConfig:
+    Index: int = 1
+    NameProfile: str = "Wyatty_User"
+
+# Данные подтянутся из файла автоматически!
+print(AppConfig.get_NameProfile()) 
+
+# Изменяем значения в коде
+AppConfig.set_Index(100)
+
+# Сохраняем изменения обратно в файл settings.package
+AppConfig.save() 
+```
 
 ## 🗄️ database_wyatty.py (In Progress)
 **Легкая обертка для работы с БД.**
 * ⚡ Подключение в одну строку.
 * 🛡️ Безопасные запросы без SQL-инъекций.
-
----
-
-## ⚙️ Установка и использование
-
-1. Скачайте нужный файл (например, `lombok_wyatty.py`).
-2. Положите его в корень вашего проекта.
-3. Импортируйте функции:
-
-```python
-from lombok_wyatty import Data
-
-@Data
-class Hero:
-    name: str
-    power: int
-```
-
-👤 Автор
-Created by Wyatty 🚀
