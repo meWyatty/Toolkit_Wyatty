@@ -33,6 +33,8 @@
 | **@Singleton** | 🔄 | Один экземпляр | Гарантирует создание только одного объекта |
 | **@LogExecution** | ⏱️ | Логирование | Пишет в консоль время и аргументы вызова |
 | **@Deprecated** | 🛑 | Устаревший код | Выводит предупреждение при вызове метода |
+| **@Secret** | 🔒 | Скрывает данные | Маскирует поле *** в ToString и логах |
+| **@Final** | 🛑 | Запрет наследования | Запрещает создавать подклассы от этого класса |
 
 ---
 
@@ -61,6 +63,29 @@ class Database:
 db1 = Database()
 db2 = Database()
 print(db1 is db2)  # ✅ True (это один и тот же объект)
+```
+
+### 🔒 @Secret (Безопасность логов)
+Теперь пароли и токены не утекут в консоль при обычном print().
+```python
+@Data
+class Connection:
+    Host: str = "127.0.0.1"
+    @Secret('Password')
+    Password: str = "admin_qwerty"
+
+# Вывод: Connection(Host='127.0.0.1', Password='********')
+```
+
+### 🛑 @Final (Защита архитектуры)
+Гарантирует, что никто не сможет изменить логику базового конфига через наследование.
+```python
+@Final
+class SecureConfig:
+    pass
+
+class MyConfig(SecureConfig): # 🚨 Ошибка: TypeError!
+    pass
 ```
 
 ### ⏱️ @LogExecution (Отладка)

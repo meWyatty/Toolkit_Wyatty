@@ -51,16 +51,16 @@ def AllArgsConstructor(cls):
 def ToString(cls):
     def to_string_logic(self):
         fields = getattr(cls, '__annotations__', {}).keys()
+        secrets = getattr(cls, '_secret_fields', set())
         values = []
         for f in fields:
-            mangled = f"_{cls.__name__}__{f.lstrip('_')}"
+            clean_f = f.lstrip('_')
+            mangled = f"_{cls.__name__}__{clean_f}"
             val = getattr(self, mangled, "N/A")
-            values.append(f"{f}={repr(val)}")
+            display_val = "'********'" if clean_f in secrets else repr(val)
+            values.append(f"{f}={display_val}")
         return f"{cls.__name__}({', '.join(values)})"
-    
-    cls.ToString = to_string_logic
     cls.__repr__ = to_string_logic
-    cls.__str__ = to_string_logic
     return cls
 
 def Getter(*fields): 
@@ -195,6 +195,20 @@ def Deprecated(reason="Using new method please"):
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+def Secret(field_name):
+    def decorator(cls):
+        if not hasattr(cls, '_secret_fields'):
+            cls._secret_fields = set()
+        cls._secret_fields.add(field_name.lstrip('_'))
+        return cls
+    return decorator
+
+def Final(cls):
+    def __init_subclass__(cls_sub, **kwargs):
+        raise TypeError(f"❌ Class {cls.__name__} is marked as @Final and cannot have children!")
+    cls.__init_subclass__ = classmethod(__init_subclass__)
+    return cls
 
 Data = DataClass
 SetterGetter = GetterSetter
